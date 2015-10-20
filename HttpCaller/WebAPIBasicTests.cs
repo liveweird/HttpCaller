@@ -11,7 +11,31 @@ namespace HttpCaller
     public class WebApiBasicTests
     {
         private readonly string _badServiceUri = "http://localhost:8070";
-        private readonly string _serviceUri = "http://localhost:8080";
+        private static readonly string _serviceUri = "http://localhost:8080";
+
+        [ClassInitialize]
+        public static void Initialize(TestContext context)
+        {
+            Client = new HttpClient
+                     {
+                         BaseAddress = new Uri(_serviceUri)
+                     };
+
+            Client.DefaultRequestHeaders.Accept.Clear();
+            Client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        }
+
+        [ClassCleanup]
+        public static void Cleanup()
+        {
+            if (Client != null)
+            {
+                Client.Dispose();
+                Client = null;
+            }           
+        }
+
+        protected static HttpClient Client { private set; get; }
 
         [TestMethod]
         public void NoOneIsListening()
@@ -37,21 +61,14 @@ namespace HttpCaller
         [TestMethod]
         public async Task SimpleGet()
         {
-            using (var client = new HttpClient())
-            {
-                client.BaseAddress = new Uri(_serviceUri);
-                client.DefaultRequestHeaders.Accept.Clear();
-                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            var responseTask = Client.GetAsync("api/anybody/home");
+            responseTask.Wait();
+            var result = responseTask.Result;
 
-                var responseTask = client.GetAsync("api/anybody/home");
-                responseTask.Wait();
-                var result = responseTask.Result;
+            result.IsSuccessStatusCode.ShouldBeTrue();
 
-                result.IsSuccessStatusCode.ShouldBeTrue();
-
-                var anybody = await result.Content.ReadAsAsync<Anybody>();
-                anybody.Home.ShouldBeTrue();
-            }
+            var anybody = await result.Content.ReadAsAsync<Anybody>();
+            anybody.Home.ShouldBeTrue();
         }
     }
 }
