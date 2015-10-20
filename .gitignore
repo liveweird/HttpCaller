@@ -1,0 +1,5 @@
+.vs/
+packages/
+HttpCaller/bin
+HttpCaller/obj
+HttpCaller/*.user
