@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
@@ -70,7 +69,7 @@ namespace HttpCaller
 
         public class Anybody
         {
-            public bool Home { get; set; }
+            public int Home { get; set; }
         }
 
         [TestMethod]
@@ -83,7 +82,7 @@ namespace HttpCaller
             result.IsSuccessStatusCode.ShouldBeTrue();
 
             var anybody = await result.Content.ReadAsAsync<Anybody>();
-            anybody.Home.ShouldBeTrue();
+            anybody.Home.ShouldBe(0);
         }
 
         [TestMethod]
@@ -176,17 +175,22 @@ namespace HttpCaller
             Console.Out.WriteLine("Total: {0}", total.ElapsedMilliseconds);
         }
 
+        public class Args
+        {
+            public int id2 { get; set; }
+        }
+
         [TestMethod]
         public async Task SimplePost()
         {
-            var responseTask = Client.PostAsJsonAsync("api/anybody/home/1", string.Empty);
+            var responseTask = Client.PostAsJsonAsync("api/anybody/home/1", new Args { id2 = 5 });
             responseTask.Wait();
             var result = responseTask.Result;
 
             result.IsSuccessStatusCode.ShouldBeTrue();
 
             var anybody = await result.Content.ReadAsAsync<Anybody>();
-            anybody.Home.ShouldBeFalse();
+            anybody.Home.ShouldBe(6);
         }
 
         public class Junk1L
@@ -231,6 +235,184 @@ namespace HttpCaller
             junk1L.junk2La[0].junk3Laa[0].ShouldBe("Abcdef");
             junk1L.junk2Lb[0].junk3Lba[0].ShouldBe(154538);
             junk1L.junk2Lc[0].junk3Lca[0].ShouldBe(123.54534);
+        }
+
+        [TestMethod]
+        public void NestedObjectsThousandCalls()
+        {
+            Stopwatch init,
+                      call,
+                      dispatch,
+                      total;
+            var count = 1000;
+            HttpClient client;
+
+            total = new Stopwatch();
+            init = new Stopwatch();
+            call = new Stopwatch();
+            dispatch = new Stopwatch();
+
+            total.Start();
+
+            for (var i = 0;
+                 i < count;
+                 i++)
+            {
+                init.Start();
+                client = CreateClient();
+                init.Stop();
+
+                call.Start();
+                var response = client.GetAsync("api/anybody/junk")
+                                     .Result;
+                var result = response.Content.ReadAsAsync<Junk1L>()
+                                     .Result;
+                call.Stop();
+
+                dispatch.Start();
+                CleanupClient(client);
+                dispatch.Stop();
+            }
+
+            total.Stop();
+
+            Console.Out.WriteLine("Init: {0}; {1}", init.ElapsedMilliseconds, ((double)init.ElapsedMilliseconds) / count);
+            Console.Out.WriteLine("Call: {0}; {1}", call.ElapsedMilliseconds, ((double)call.ElapsedMilliseconds) / count);
+            Console.Out.WriteLine("Dispatch: {0}; {1}", dispatch.ElapsedMilliseconds, ((double)dispatch.ElapsedMilliseconds) / count);
+            Console.Out.WriteLine("Total: {0}", total.ElapsedMilliseconds);
+        }
+
+        [TestMethod]
+        public void NestedObjectsThousandCallsSingleInit()
+        {
+            Stopwatch init,
+                      call,
+                      dispatch,
+                      total;
+            var count = 1000;
+            HttpClient client;
+
+            total = new Stopwatch();
+            init = new Stopwatch();
+            call = new Stopwatch();
+            dispatch = new Stopwatch();
+
+            total.Start();
+
+            init.Start();
+            client = CreateClient();
+            init.Stop();
+
+            for (var i = 0;
+                 i < count;
+                 i++)
+            {
+                call.Start();
+                var response = client.GetAsync("api/anybody/junk")
+                                     .Result;
+                var result = response.Content.ReadAsAsync<Junk1L>()
+                                     .Result;
+                call.Stop();
+            }
+
+            dispatch.Start();
+            CleanupClient(client);
+            dispatch.Stop();
+
+            total.Stop();
+
+            Console.Out.WriteLine("Init: {0}; {1}", init.ElapsedMilliseconds, ((double)init.ElapsedMilliseconds));
+            Console.Out.WriteLine("Call: {0}; {1}", call.ElapsedMilliseconds, ((double)call.ElapsedMilliseconds) / count);
+            Console.Out.WriteLine("Dispatch: {0}; {1}", dispatch.ElapsedMilliseconds, ((double)dispatch.ElapsedMilliseconds));
+            Console.Out.WriteLine("Total: {0}", total.ElapsedMilliseconds);
+        }
+
+        [TestMethod]
+        public void NestedObjectsThousandPostCalls()
+        {
+            Stopwatch init,
+                      call,
+                      dispatch,
+                      total;
+            var count = 1000;
+            HttpClient client;
+
+            total = new Stopwatch();
+            init = new Stopwatch();
+            call = new Stopwatch();
+            dispatch = new Stopwatch();
+
+            total.Start();
+
+            for (var i = 0;
+                 i < count;
+                 i++)
+            {
+                init.Start();
+                client = CreateClient();
+                init.Stop();
+
+                call.Start();
+                var response = Client.PostAsJsonAsync("api/anybody/home/1", new { id2 = 5 }).Result;
+                var result = response.Content.ReadAsAsync<Anybody>()
+                                     .Result;
+                call.Stop();
+
+                dispatch.Start();
+                CleanupClient(client);
+                dispatch.Stop();
+            }
+
+            total.Stop();
+
+            Console.Out.WriteLine("Init: {0}; {1}", init.ElapsedMilliseconds, ((double)init.ElapsedMilliseconds) / count);
+            Console.Out.WriteLine("Call: {0}; {1}", call.ElapsedMilliseconds, ((double)call.ElapsedMilliseconds) / count);
+            Console.Out.WriteLine("Dispatch: {0}; {1}", dispatch.ElapsedMilliseconds, ((double)dispatch.ElapsedMilliseconds) / count);
+            Console.Out.WriteLine("Total: {0}", total.ElapsedMilliseconds);
+        }
+
+        [TestMethod]
+        public void NestedObjectsThousandPostCallsSingleInit()
+        {
+            Stopwatch init,
+                      call,
+                      dispatch,
+                      total;
+            var count = 1000;
+            HttpClient client;
+
+            total = new Stopwatch();
+            init = new Stopwatch();
+            call = new Stopwatch();
+            dispatch = new Stopwatch();
+
+            total.Start();
+
+            init.Start();
+            client = CreateClient();
+            init.Stop();
+
+            for (var i = 0;
+                 i < count;
+                 i++)
+            {
+                call.Start();
+                var response = Client.PostAsJsonAsync("api/anybody/home/1", new { id2 = 5 }).Result;
+                var result = response.Content.ReadAsAsync<Anybody>()
+                                     .Result;
+                call.Stop();
+            }
+
+            dispatch.Start();
+            CleanupClient(client);
+            dispatch.Stop();
+
+            total.Stop();
+
+            Console.Out.WriteLine("Init: {0}; {1}", init.ElapsedMilliseconds, ((double)init.ElapsedMilliseconds));
+            Console.Out.WriteLine("Call: {0}; {1}", call.ElapsedMilliseconds, ((double)call.ElapsedMilliseconds) / count);
+            Console.Out.WriteLine("Dispatch: {0}; {1}", dispatch.ElapsedMilliseconds, ((double)dispatch.ElapsedMilliseconds));
+            Console.Out.WriteLine("Total: {0}", total.ElapsedMilliseconds);
         }
     }
 }
