@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -127,7 +128,7 @@ namespace HttpCaller
             Console.Out.WriteLine("Init: {0}; {1}", init.ElapsedMilliseconds, ((double) init.ElapsedMilliseconds) / count);
             Console.Out.WriteLine("Call: {0}; {1}", call.ElapsedMilliseconds, ((double) call.ElapsedMilliseconds) / count);
             Console.Out.WriteLine("Dispatch: {0}; {1}", dispatch.ElapsedMilliseconds, ((double) dispatch.ElapsedMilliseconds) / count);
-            Console.Out.WriteLine("Total: {0}; {1}", total.ElapsedMilliseconds, ((double) total.ElapsedMilliseconds) / count);
+            Console.Out.WriteLine("Total: {0}", total.ElapsedMilliseconds);
         }
 
         [TestMethod]
@@ -169,11 +170,67 @@ namespace HttpCaller
 
             total.Stop();
 
-            Console.Out.WriteLine("Init: {0}; {1}", init.ElapsedMilliseconds, ((double)init.ElapsedMilliseconds) / count);
+            Console.Out.WriteLine("Init: {0}; {1}", init.ElapsedMilliseconds, ((double)init.ElapsedMilliseconds));
             Console.Out.WriteLine("Call: {0}; {1}", call.ElapsedMilliseconds, ((double)call.ElapsedMilliseconds) / count);
-            Console.Out.WriteLine("Dispatch: {0}; {1}", dispatch.ElapsedMilliseconds, ((double)dispatch.ElapsedMilliseconds) / count);
-            Console.Out.WriteLine("Total: {0}; {1}", total.ElapsedMilliseconds, ((double)total.ElapsedMilliseconds) / count);
+            Console.Out.WriteLine("Dispatch: {0}; {1}", dispatch.ElapsedMilliseconds, ((double)dispatch.ElapsedMilliseconds));
+            Console.Out.WriteLine("Total: {0}", total.ElapsedMilliseconds);
         }
 
+        [TestMethod]
+        public async Task SimplePost()
+        {
+            var responseTask = Client.PostAsJsonAsync("api/anybody/home/1", string.Empty);
+            responseTask.Wait();
+            var result = responseTask.Result;
+
+            result.IsSuccessStatusCode.ShouldBeTrue();
+
+            var anybody = await result.Content.ReadAsAsync<Anybody>();
+            anybody.Home.ShouldBeFalse();
+        }
+
+        public class Junk1L
+        {
+            public List<Junk2La> junk2La { get; set; }
+            public List<Junk2Lb> junk2Lb { get; set; }
+            public List<Junk2Lc> junk2Lc { get; set; }
+        }
+
+        public class Junk2La
+        {
+            public List<string> junk3Laa { get; set; }
+        }
+
+        public class Junk2Lb
+        {
+            public List<int> junk3Lba { get; set; }
+        }
+
+        public class Junk2Lc
+        {
+            public List<double> junk3Lca { get; set; }
+        }
+
+        [TestMethod]
+        public async Task NestedObjectsSimpleGet()
+        {
+            var responseTask = Client.GetAsync("api/anybody/junk");
+            responseTask.Wait();
+            var result = responseTask.Result;
+
+            result.IsSuccessStatusCode.ShouldBeTrue();
+
+            var junk1L = await result.Content.ReadAsAsync<Junk1L>();
+
+            junk1L.junk2La.Count.ShouldBe(100);
+            junk1L.junk2Lb.Count.ShouldBe(100);
+            junk1L.junk2Lc.Count.ShouldBe(100);
+            junk1L.junk2La[0].junk3Laa.Count.ShouldBe(100);
+            junk1L.junk2Lb[0].junk3Lba.Count.ShouldBe(100);
+            junk1L.junk2Lc[0].junk3Lca.Count.ShouldBe(100);
+            junk1L.junk2La[0].junk3Laa[0].ShouldBe("Abcdef");
+            junk1L.junk2Lb[0].junk3Lba[0].ShouldBe(154538);
+            junk1L.junk2Lc[0].junk3Lca[0].ShouldBe(123.54534);
+        }
     }
 }
