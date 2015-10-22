@@ -175,15 +175,20 @@ namespace HttpCaller
             Console.Out.WriteLine("Total: {0}", total.ElapsedMilliseconds);
         }
 
-        public class Args
+        private static FormUrlEncodedContent SampleFormContent()
         {
-            public int id2 { get; set; }
+            var formContent = new FormUrlEncodedContent(new[]
+                                                        {
+                                                            new KeyValuePair<string, string>("id2",
+                                                                                             "5")
+                                                        });
+            return formContent;
         }
 
         [TestMethod]
         public async Task SimplePost()
         {
-            var responseTask = Client.PostAsJsonAsync("api/anybody/home/1", new Args { id2 = 5 });
+            var responseTask = Client.PostAsync("api/anybody/home/1", SampleFormContent());
             responseTask.Wait();
             var result = responseTask.Result;
 
@@ -353,7 +358,7 @@ namespace HttpCaller
                 init.Stop();
 
                 call.Start();
-                var response = Client.PostAsJsonAsync("api/anybody/home/1", new { id2 = 5 }).Result;
+                var response = Client.PostAsync("api/anybody/home/1", SampleFormContent()).Result;
                 var result = response.Content.ReadAsAsync<Anybody>()
                                      .Result;
                 call.Stop();
@@ -397,7 +402,7 @@ namespace HttpCaller
                  i++)
             {
                 call.Start();
-                var response = Client.PostAsJsonAsync("api/anybody/home/1", new { id2 = 5 }).Result;
+                var response = Client.PostAsync("api/anybody/home/1", SampleFormContent()).Result;
                 var result = response.Content.ReadAsAsync<Anybody>()
                                      .Result;
                 call.Stop();
