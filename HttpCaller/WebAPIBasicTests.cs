@@ -333,7 +333,7 @@ namespace HttpCaller
         }
 
         [TestMethod]
-        public void NestedObjectsThousandPostCalls()
+        public void ThousandPostCalls()
         {
             Stopwatch init,
                       call,
@@ -377,7 +377,7 @@ namespace HttpCaller
         }
 
         [TestMethod]
-        public void NestedObjectsThousandPostCallsSingleInit()
+        public void ThousandPostCallsSingleInit()
         {
             Stopwatch init,
                       call,
