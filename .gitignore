@@ -5,3 +5,4 @@ HttpCaller/bin
 HttpCaller/obj
 HttpCaller/*.user
 HttpCaller/*.ncrunchproject
+TestResults/*
