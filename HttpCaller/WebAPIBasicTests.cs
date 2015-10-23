@@ -5,6 +5,9 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Schema;
 using Shouldly;
 
 namespace HttpCaller
@@ -69,7 +72,18 @@ namespace HttpCaller
 
         public class Anybody
         {
+            [JsonProperty("home", Required = Required.Always)]
             public int Home { get; set; }
+        }
+
+
+        public class Anybody2
+        {
+            [JsonProperty("home", Required = Required.Always)]
+            public int Home { get; set; }
+
+            [JsonProperty("home2", Required = Required.Always)]
+            public int Home2 { get; set; }
         }
 
         [TestMethod]
@@ -418,6 +432,64 @@ namespace HttpCaller
             Console.Out.WriteLine("Call: {0}; {1}", call.ElapsedMilliseconds, ((double)call.ElapsedMilliseconds) / count);
             Console.Out.WriteLine("Dispatch: {0}; {1}", dispatch.ElapsedMilliseconds, ((double)dispatch.ElapsedMilliseconds));
             Console.Out.WriteLine("Total: {0}", total.ElapsedMilliseconds);
+        }
+
+        [TestMethod]
+        async public Task ValidateSuccessJsonSchema()
+        {
+            var generator = new JSchemaGenerator();
+            var schema = generator.Generate(typeof(Anybody));
+
+            var responseTask = Client.GetAsync("api/anybody/home");
+            responseTask.Wait();
+            var result = responseTask.Result;
+
+            result.IsSuccessStatusCode.ShouldBeTrue();
+
+            var anybody = await result.Content.ReadAsStringAsync();
+            var user = JObject.Parse(anybody);
+            var valid = user.IsValid(schema);
+
+            valid.ShouldBeTrue();
+        }
+
+        [TestMethod]
+        async public Task ValidateFailTooManyFieldsJsonSchema()
+        {
+            var generator = new JSchemaGenerator();
+            var schema = generator.Generate(typeof(Anybody));
+            schema.AllowAdditionalProperties = false;
+
+            var responseTask = Client.GetAsync("api/anybody/home2");
+            responseTask.Wait();
+            var result = responseTask.Result;
+
+            result.IsSuccessStatusCode.ShouldBeTrue();
+
+            var anybody = await result.Content.ReadAsStringAsync();
+            var user = JObject.Parse(anybody);
+            var valid = user.IsValid(schema);
+
+            valid.ShouldBeFalse();
+        }
+
+        [TestMethod]
+        async public Task ValidateFailTooFewFieldsJsonSchema()
+        {
+            var generator = new JSchemaGenerator();
+            var schema = generator.Generate(typeof(Anybody2));
+
+            var responseTask = Client.GetAsync("api/anybody/home");
+            responseTask.Wait();
+            var result = responseTask.Result;
+
+            result.IsSuccessStatusCode.ShouldBeTrue();
+
+            var anybody = await result.Content.ReadAsStringAsync();
+            var user = JObject.Parse(anybody);
+            var valid = user.IsValid(schema);
+
+            valid.ShouldBeFalse();
         }
     }
 }
